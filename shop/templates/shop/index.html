@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    
+{% endblock title %}
+    
+
+{% block content %}
+<ul>
+    
+    {% for cat in categories %}
+    <li>
+        <a href="">{{cat}}</a>
+    </li>
+        
+    {% endfor %}
+        
+</ul>
+       
+
+ <div class="featured_products">
+    <h1>Featured products</h1>
+        {% for product in featured_products %}
+            <a href="{% url 'shop:product_detail' product.slug %}">    
+                <p>Product name: {{product.name}}</p>
+                <p>Price: {{product.price}}</p>
+                <p>
+                {% if product.is_in_stock %}
+                {{product.stock}}
+                {% else %}
+                    Out of stock
+                {% endif %}
+                </p>    
+            </a>    
+        {% empty %}
+        <p>There are products in this category.</p>    
+        {% endfor %}
+    </div>
+     <div class="latest_products">
+    <h1>Latest products</h1>
+        {% for product in latest_products%}
+            <a href="{% url 'shop:product_detail' product.slug %}">    
+                <p>Product name: {{product.name}}</p>
+                <p>Price: {{product.price}}</p>
+                <p>
+                {% if product.is_in_stock %}
+                {{product.stock}}
+                {% else %}
+                    Out of stock
+                {% endif %}
+                </p>    
+            </a>    
+        {% empty %}
+        <p>There are products in this category.</p>    
+        {% endfor %}
+    </div>
+{% endblock content %}
+    

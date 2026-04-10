@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+        {% block title %}Gtbook Store{% endblock %}
+    </title>
+    
+    <!-- Sau này sẽ thêm CSS, Bootstrap... -->
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% block navbar %}
+        <!-- Thanh navigation sẽ để sau -->
+    {% endblock navbar %}
+
+    <main>
+        {% block content %}
+        {% endblock content %}
+    </main>
+
+    {% block footer %}
+    {% endblock footer %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
