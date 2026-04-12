@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if category %}
+        {{ category.name }} - Gtbooks Store
+    {% else %}
+        All product - Gtbooks Store
+    {% endif %}
+{% endblock %}
+
+
+{% block content %}
+
+<h1>{{ product.name }}</h1>
+
+<p>Price: {{ product.price }}</p>
+
+<p>
+{% if product.is_in_stock %}
+    In stock
+{% else %}
+    Out of stock
+{% endif %}
+</p>
+
+<button>Add to cart</button>
+
+{% endblock %}

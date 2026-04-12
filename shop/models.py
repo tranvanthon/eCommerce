@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
+from django.urls import reverse
 
 
 class Category(models.Model):
@@ -17,6 +18,9 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+    def get_absolute_url(self):
+        return reverse("shop:category_detail", kwargs={"slug": self.slug})
+
     def save(self, *args, **kwargs):
         if not self.slug:
             base_slug = slugify(self.name)
@@ -27,7 +31,7 @@ class Category(models.Model):
                 counter += 1
             self.slug = slug
         super().save(*args, **kwargs)
-    
+
     def get_descendants(self, include_self=False):
         """Lấy tất cả danh mục con, cháu, chắt..."""
         descendants = []
@@ -39,10 +43,33 @@ class Category(models.Model):
             descendants.extend(child.get_descendants())
 
         return descendants
-    
+
     def get_descendants_ids(self):
         """Lay list ID cua all descendants (de fielter Product)"""
         return [cat.id for cat in self.get_descendants(include_self=True)]
+    
+    def get_grouped_products(self):
+        from django.db.models import Prefetch
+        children = self.children.prefetch_related(
+            Prefetch(
+                "products",
+                queryset=Product.objects.filter(is_active=True)
+            )
+        )
+
+        result = []
+
+        for child in children:
+            products = child.products.all()  # không query lại DB
+
+            if products:
+                result.append({
+                    "category": child,
+                    "products": products
+                })
+
+        return result
+
 
 class Product(models.Model):
     name = models.CharField(max_length=255)

@@ -3,73 +3,97 @@ from .models import Category, Product
 from django.shortcuts import get_object_or_404
 from django.views.generic import ListView, DetailView
 
-def index(request):
 
-    categories = Category.objects.filter(parent__isnull = True)#show category in navbar
-    featured_products = Product.objects.filter(is_active = True).order_by('-created_at')[:8]#Products featured 
-    latest_products = Product.objects.filter(is_active=True).order_by('-stock')[:8] #Latest products
-
-    context ={
-        'categories':categories,
-        'featured_products': featured_products,
-        'latest_products':latest_products,
-    }
-    return render(request, 'shop/index.html', context)
-
-class ProductListView(ListView):   
+class HomeView(ListView):
     model = Product
-    fields = '__all__'
-    context_object_name = 'products'
-    ordering = ['-created_at']
+    context_object_name = "products"
+    template_name = "shop/index.html"
+
     def get_queryset(self):
-        """Lọc sản phẩm active + theo category nếu có slug"""
-        queryset = Product.objects.filter(is_active=True)
-        
-        slug = self.kwargs.get('slug') # get from url
-        if slug:
-            Category =get_object_or_404(Category, slug=slug)
-            
+        return Product.objects.filter(is_active=True).order_by("-created_at")[:8]
 
-        return queryset
-
-    def get_context_data(self,*args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        categories_nav = Category.objects.filter(parent__isnull=True)
-        products = Product.objects.filter(is_active=True).order_by('-created_at')
-
-
-        context["categories_nav"] = categories_nav
-        context["products"] = products
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["categories"] = Category.objects.filter(parent__isnull=True)
         return context
-    
+
+    # categories = Category.objects.filter(parent__isnull=True)  # show category in navbar
+    # featured_products = Product.objects.filter(is_active=True).order_by("-created_at")[
+    #     :8
+    # ]  # Products featured
+    # latest_products = Product.objects.filter(is_active=True).order_by("-stock")[
+    #     :8
+    # ]  # Latest products
+
+    # context = {
+    #     "categories": categories,
+    #     "featured_products": featured_products,
+    #     "latest_products": latest_products,
+    # }
+    # return render(request, "shop/index.html", context)
+
+
+# Category list view chỉ lấy gốc (cho menu chính)
+# class CategoryListView(ListView):
+#     model = Category
+#     context_object_name = "categories"
+
+#     def get_queryset(self):
+#         return Category.objects.filter(parent__isnull=True)
+
+
+class CategoryDetailView(DetailView):
+    model = Category
+    context_object_name = "category"
+
+    def get_object(self):
+        return Category.objects.get(slug=self.kwargs["slug"])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["grouped_products"] = self.object.get_grouped_products()
+        context["categories"] = self.object.get_descendants()
+
+        return context
+
+
+class ProductListView(ListView):
+    model = Product
+    context_object_name = "products"
+    paginate_by = 10
+
+    def get_queryset(self):
+        return Product.objects.filter(is_active=True)
+
+
 class ProductDetailView(DetailView):
     model = Product
-    fields = ['name', 'price', 'stock']
-    context_object_name = 'products'
-    slug_field = 'slug'
-    slug_url_kwarg = 'slug'
+    context_object_name = "product"
+
+    def get_object(self):
+        return Product.objects.get(slug=self.kwargs["slug"])
 
 
+# class ProductListView(ListView):
+#     model = Product
+#     context_object_name = "products"
+#     ordering = ["-created_at"]
 
-# def product_list(request, slug=None):
-#     products = Product.objects.filter(is_active=True).order_by('-created_at')
-#     categories_nav = Category.objects.filter(parent__isnull = True)#show category in navbar
-#     category = None
-#     categories_current = None # Show breadcrumb after
+#     def get_queryset(self):
+#         """Lọc sản phẩm active + theo category nếu có slug"""
+#         queryset = Product.objects.filter(is_active=True)
 
-#     if slug:
-#         category = get_object_or_404(Category, slug = slug)
-#         # Get all category IDs + descendants
-#         descendant_ids = category.get_descendants_ids()
-#         products = products.filter(category__id__in=descendant_ids)
-#         categories_current = category
+#         slug = self.kwargs.get("slug")  # get from url
+#         if slug:
+#             Category = get_object_or_404(Category, slug=slug)
 
-    
-#     context ={
-#         'categories_nav': categories_nav,
-#         'categories_current': categories_current,
-#         'products': products,
-#         'categories':Category.objects.filter(parent__isnull=True)
-#     }
-#     return render(request, 'shop/product_list.html', context)
+#         return queryset
 
+#     def get_context_data(self, *args, **kwargs):
+#         context = super().get_context_data(*args, **kwargs)
+#         categories_nav = Category.objects.filter(parent__isnull=True)
+#         products = Product.objects.filter(is_active=True).order_by("-created_at")
+
+#         context["categories_nav"] = categories_nav
+#         context["products"] = products
+#         return context

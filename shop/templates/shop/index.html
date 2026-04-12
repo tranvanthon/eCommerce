@@ -3,56 +3,31 @@
 {% block title %}
     
 {% endblock title %}
-    
 
-{% block content %}
-<ul>
-    
-    {% for cat in categories %}
-    <li>
-        <a href="">{{cat}}</a>
-    </li>
-        
+{% block navbar %}
+    <nav>
+    <a href="/">Home</a>
+
+    {% for category in categories %}
+        <a href="{% url 'shop:category_detail' category.slug %}">
+            {{ category.name }}
+        </a>
     {% endfor %}
-        
-</ul>
-       
-
- <div class="featured_products">
-    <h1>Featured products</h1>
-        {% for product in featured_products %}
-            <a href="{% url 'shop:product_detail' product.slug %}">    
-                <p>Product name: {{product.name}}</p>
-                <p>Price: {{product.price}}</p>
-                <p>
-                {% if product.is_in_stock %}
-                {{product.stock}}
-                {% else %}
-                    Out of stock
-                {% endif %}
-                </p>    
-            </a>    
-        {% empty %}
-        <p>There are products in this category.</p>    
-        {% endfor %}
-    </div>
-     <div class="latest_products">
-    <h1>Latest products</h1>
-        {% for product in latest_products%}
-            <a href="{% url 'shop:product_detail' product.slug %}">    
-                <p>Product name: {{product.name}}</p>
-                <p>Price: {{product.price}}</p>
-                <p>
-                {% if product.is_in_stock %}
-                {{product.stock}}
-                {% else %}
-                    Out of stock
-                {% endif %}
-                </p>    
-            </a>    
-        {% empty %}
-        <p>There are products in this category.</p>    
-        {% endfor %}
-    </div>
-{% endblock content %}
+</nav>
+{% endblock navbar %}
     
+{% block content %}
+<h1>Products</h1>
+
+<div style="display:grid; grid-template-columns: repeat(4,1fr); gap:20px;">
+    {% for product in products %}
+        <div>
+            <a href="{% url 'shop:product_detail' product.slug %}">
+                <h3>{{ product.name }}</h3>
+            </a>
+
+            <p>{{ product.price }}</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}
