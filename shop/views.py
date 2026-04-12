@@ -30,30 +30,6 @@ class HomeView(ListView):
 
         return context
 
-    # categories = Category.objects.filter(parent__isnull=True)  # show category in navbar
-    # featured_products = Product.objects.filter(is_active=True).order_by("-created_at")[
-    #     :8
-    # ]  # Products featured
-    # latest_products = Product.objects.filter(is_active=True).order_by("-stock")[
-    #     :8
-    # ]  # Latest products
-
-    # context = {
-    #     "categories": categories,
-    #     "featured_products": featured_products,
-    #     "latest_products": latest_products,
-    # }
-    # return render(request, "shop/index.html", context)
-
-
-# Category list view chỉ lấy gốc (cho menu chính)
-# class CategoryListView(ListView):
-#     model = Category
-#     context_object_name = "categories"
-
-#     def get_queryset(self):
-#         return Category.objects.filter(parent__isnull=True)
-
 
 class CategoryDetailView(DetailView):
     model = Category
@@ -64,8 +40,35 @@ class CategoryDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["grouped_products"] = self.object.get_grouped_products()
+
+        category = self.object
+
+        products = Product.objects.filter(
+            category_id__in=category.get_descendants_ids(), is_active=True
+        )
+
+        brand = self.request.GET.get("brand")
+        min_price = self.request.GET.get("min_price")
+        max_price = self.request.GET.get("max_price")
+
+        if brand:
+            products = products.filter(category__slug=brand)
+
+        if min_price:
+            products = products.filter(price__gte=min_price)
+
+        if max_price:
+            products = products.filter(price__lte=max_price)
+
+        if brand or min_price or max_price:
+            context["is_filtered"] = True
+        else:
+            context["is_filtered"] = False
+            context["grouped_products"] = category.get_grouped_products()
+
+        context["products"] = products
         context["categories"] = Category.objects.filter(parent__isnull=True)
+        context["brands"] = category.children.all()
 
         return context
 
@@ -85,28 +88,3 @@ class ProductDetailView(DetailView):
 
     def get_object(self):
         return Product.objects.get(slug=self.kwargs["slug"])
-
-
-# class ProductListView(ListView):
-#     model = Product
-#     context_object_name = "products"
-#     ordering = ["-created_at"]
-
-#     def get_queryset(self):
-#         """Lọc sản phẩm active + theo category nếu có slug"""
-#         queryset = Product.objects.filter(is_active=True)
-
-#         slug = self.kwargs.get("slug")  # get from url
-#         if slug:
-#             Category = get_object_or_404(Category, slug=slug)
-
-#         return queryset
-
-#     def get_context_data(self, *args, **kwargs):
-#         context = super().get_context_data(*args, **kwargs)
-#         categories_nav = Category.objects.filter(parent__isnull=True)
-#         products = Product.objects.filter(is_active=True).order_by("-created_at")
-
-#         context["categories_nav"] = categories_nav
-#         context["products"] = products
-#         return context

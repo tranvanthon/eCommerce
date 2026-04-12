@@ -35,6 +35,7 @@ class Category(models.Model):
             self.slug = slug
         super().save(*args, **kwargs)
 
+
     def get_descendants(self, include_self=False):
         """Lấy tất cả danh mục con, cháu, chắt..."""
         descendants = []
