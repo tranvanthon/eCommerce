@@ -6,15 +6,28 @@ from django.views.generic import ListView, DetailView
 
 class HomeView(ListView):
     model = Product
-    context_object_name = "products"
+    context_object_name = "grouped_categories"
     template_name = "shop/index.html"
-
-    def get_queryset(self):
-        return Product.objects.filter(is_active=True).order_by("-created_at")[:8]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.filter(parent__isnull=True)
+        root_categories = Category.objects.filter(parent__isnull=True)
+        grouped_data = []
+
+        for root_cat in root_categories:
+            groups = root_cat.get_grouped_products()
+            if groups:  #  Chỉ thêm nhóm nào có sản phẩm
+                grouped_data.append(
+                    {
+                        "main_category": root_cat,
+                        "groups": groups,
+                    }
+                )
+            else:
+                print(f"-> Bo qua {root_cat.name} vi khong co groups")
+
+        context["grouped_categories"] = grouped_data
+
         return context
 
     # categories = Category.objects.filter(parent__isnull=True)  # show category in navbar
@@ -52,7 +65,7 @@ class CategoryDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["grouped_products"] = self.object.get_grouped_products()
-        context["categories"] = self.object.get_descendants()
+        context["categories"] = Category.objects.filter(parent__isnull=True)
 
         return context
 

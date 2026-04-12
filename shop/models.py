@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.urls import reverse
+from django.db.models import Prefetch
 
 
 class Category(models.Model):
@@ -16,6 +17,8 @@ class Category(models.Model):
         verbose_name_plural = "Categories"
 
     def __str__(self):
+        if self.parent:
+            return f"{self.parent.name} > {self.name}"
         return self.name
 
     def get_absolute_url(self):
@@ -47,28 +50,34 @@ class Category(models.Model):
     def get_descendants_ids(self):
         """Lay list ID cua all descendants (de fielter Product)"""
         return [cat.id for cat in self.get_descendants(include_self=True)]
-    
+
     def get_grouped_products(self):
-        from django.db.models import Prefetch
-        children = self.children.prefetch_related(
-            Prefetch(
-                "products",
-                queryset=Product.objects.filter(is_active=True)
+        """Lấy sản phẩm theo nhóm danh mục CON, bao gồm cả chính nó"""
+        if self.children.exists():
+
+            children = self.children.prefetch_related(
+                Prefetch("products", queryset=Product.objects.filter(is_active=True))
             )
-        )
 
-        result = []
+            result = []
+            # Lấy sản phẩm trực tiếp từ danh mục con
+            for child in children:
+                products = child.products.filter(is_active=True)
 
-        for child in children:
-            products = child.products.all()  # không query lại DB
+                if products:
+                    result.append({"category": child, "products": products})
 
+            return result
+        else:
+            # Nếu không có children, lấy sản phẩm của chính nó
+            products = self.products.filter(is_active=True)
             if products:
-                result.append({
-                    "category": child,
-                    "products": products
-                })
-
-        return result
+                return [
+                    {
+                        "category": self,
+                        "products": products,
+                    }
+                ]
 
 
 class Product(models.Model):

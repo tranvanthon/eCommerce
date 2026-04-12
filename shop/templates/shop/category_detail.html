@@ -5,18 +5,25 @@
 <div style="display:flex; gap:20px;">
 
     <!-- SIDEBAR -->
-    <aside style="width:220px;">
+    <aside>
         <h3>Danh mục</h3>
-
-        {% for cat in categories %}
-            <div style="margin-bottom:8px;">
-                <a href="{% url 'shop:category_detail' cat.slug %}">
-                    {{ cat.name }}
-                </a>
+      {% for root in categories %}
+            <div>
+                <a href="{% url 'shop:category_detail' root.slug %}">{{ root.name }}</a>
+                
+                {% for child in root.children.all %}
+                    <ul>
+                        <li>
+                            <a href="{% url 'shop:category_detail' child.slug %}">
+                                {{ child.name }}
+                            </a>
+                        </li>
+                    </ul>
+                {% endfor %}
             </div>
-        {% endfor %}
+        {% endfor %} 
+     
     </aside>
-
     <!-- MAIN CONTENT -->
     <main style="flex:1;">
 
@@ -25,43 +32,27 @@
         {% if grouped_products %}
 
             {% for group in grouped_products %}
-
-                <!-- TITLE CATEGORY CON -->
                 <div style="margin-top:30px;">
                     <h2 style="display:flex; justify-content:space-between;">
                         <span>{{ group.category.name }}</span>
-
                         <a href="{% url 'shop:category_detail' group.category.slug %}">
                             Xem tất cả →
                         </a>
                     </h2>
                 </div>
 
-                <!-- GRID PRODUCTS -->
                 <div style="
                     display:grid;
                     grid-template-columns: repeat(4, 1fr);
                     gap:20px;
                     margin-top:10px;
                 ">
-
                     {% for product in group.products %}
-                        <div style="
-                            border:1px solid #ddd;
-                            padding:10px;
-                            border-radius:6px;
-                        ">
-
+                        <div style="border:1px solid #ddd; padding:10px; border-radius:6px;">
                             <a href="{% url 'shop:product_detail' product.slug %}">
-                                <h4 style="font-size:14px;">
-                                    {{ product.name }}
-                                </h4>
+                                <h4 style="font-size:14px;">{{ product.name }}</h4>
                             </a>
-
-                            <p style="color:red; font-weight:bold;">
-                                {{ product.price }} đ
-                            </p>
-
+                            <p style="color:red; font-weight:bold;">{{ product.price }} đ</p>
                             <p>
                                 {% if product.is_in_stock %}
                                     <span style="color:green;">Còn hàng</span>
@@ -69,7 +60,6 @@
                                     <span style="color:gray;">Hết hàng</span>
                                 {% endif %}
                             </p>
-
                             <button style="
                                 margin-top:8px;
                                 width:100%;
@@ -81,16 +71,13 @@
                             ">
                                 Thêm vào giỏ
                             </button>
-
                         </div>
                     {% endfor %}
-
                 </div>
-
             {% endfor %}
 
         {% else %}
-            <p>Không có sản phẩm</p>
+            <p>Không có sản phẩm nào trong danh mục này</p>
         {% endif %}
 
     </main>
