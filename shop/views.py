@@ -1,10 +1,113 @@
-from django.shortcuts import render
-from .models import Category, Product
+from django.contrib import messages
+
+from django.shortcuts import render, redirect
+from .models import Category, Product, Order, OrderItem
 from django.shortcuts import get_object_or_404
 from django.views.generic import ListView, DetailView
+from django.core.exceptions import ValidationError
 
 
+# update_from_cart
+def update_cart_item(request, item_id):
+    item = get_object_or_404(OrderItem, id=item_id)
+
+    action = request.POST.get("action")
+    try:
+        if action == "increase":
+            item.quantity += 1
+
+        if action == "decrease":
+            item.quantity -= 1
+
+        # Nếu quantity <=0 thì xoá
+        if item.quantity <= 0:
+            item.delete()
+        else:
+            item.save()
+
+    except ValidationError:
+        messages.warning(request, "Out of stock!!")
+
+    return redirect("shop:cart_detail")
+
+
+# Delete products in Cart
+def remove_from_cart(request, item_id):
+    item = get_object_or_404(OrderItem, id=item_id)
+    item.delete()
+    return redirect("shop:cart_detail")
+
+
+# Cart detail
+def cart_detail(request):
+    order_id = request.session.get("order_id")
+
+    if not order_id:
+        return render(request, "shop/cart_detail.html", {"order": None})
+    order = Order.objects.get(id=order_id)
+
+    return render(request, "shop/cart_detail.html", {"order": order})
+
+
+# Cart
+def add_to_cart(request, slug):
+    product = get_object_or_404(Product, slug=slug)
+    # Lấy order tron session
+    order_id = request.session.get("order_id")
+
+    if order_id:
+        order = Order.objects.get(id=order_id)
+    else:
+        order = Order.objects.create(status=Order.Status.DRAFT, total_price=0)
+        request.session["order_id"] = order.id
+    try:
+        # Kiểm tra product đã có trong giỏ hàng chưa
+        order_item, created = OrderItem.objects.get_or_create(
+            order=order,
+            product=product,
+            defaults={"price": product.price, "quantity": 1},
+        )
+        # Nếu đã có hàng thì tăng quantity
+        if not created:
+            order_item.quantity += 1
+            order_item.save()
+    except ValidationError as e:
+        messages.warning(request, f"Product is out of stock. {e}")
+        return redirect("shop:home")
+
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+# Home
 class HomeView(ListView):
+    model = Product
+    context_object_name = "grouped_categories"
+    template_name = "shop/index.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        root_categories = Category.objects.filter(parent__isnull=True)
+        grouped_data = []
+
+        for root_cat in root_categories:
+            groups = root_cat.get_grouped_products()
+            if groups:  #  Chỉ thêm nhóm nào có sản phẩm
+                grouped_data.append(
+                    {
+                        "main_category": root_cat,
+                        "groups": groups,
+                    }
+                )
+            else:
+                print(f"-> Bo qua {root_cat.name} vi khong co groups")
+        
+        context["grouped_categories"] = grouped_data
+        context["categories"] = root_categories
+        context["quantity_order_item"] = OrderItem.objects.all()
+        return context
+
+
+class CatgoryListView(ListView):
     model = Product
     context_object_name = "grouped_categories"
     template_name = "shop/index.html"
@@ -31,6 +134,7 @@ class HomeView(ListView):
         return context
 
 
+# Category and product
 class CategoryDetailView(DetailView):
     model = Category
     context_object_name = "category"

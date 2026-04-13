@@ -87,7 +87,15 @@
                             {{ product.name }}
                         </a>
                         <p>{{ product.price|dot_thousands }}</p>
+                    <p>
+                    {% if product.is_in_stock %}
+                        <span style="color:green;">Còn hàng</span>
+                    {% else %}
+                        <span style="color:gray;">Hết hàng</span>
+                    {% endif %}
+                    </p>
                     </div>
+
                 {% endfor %}
             </div>
 

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <h1>Giỏ hàng</h1>
+
+    {% if order %}
+
+        {% for item in order.items.all %}
+            <div class="d-flex align-item-center">
+                <h3>{{ item.product.name }}</h3>
+                <p>{{ item.quantity }} x {{ item.price }}</p>
+                <!-- FORM UPDATE -->
+                <form action="{% url 'shop:cart_update' item.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="decrease">
+                    <button type="submit">-</button>
+                </form>
+
+                <strong>{{ item.quantity }}</strong>
+
+                <form action="{% url 'shop:cart_update' item.id %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="increase">
+                    <button type="submit">+</button>
+                </form>
+                <p>Tổng: {{ item.subtotal }}</p>
+                <a href="{% url 'shop:cart_delete' item.id %}">Delete</a>
+            </div>
+        {% empty %}
+        <p>Giỏ hàng trống</p>
+        <a href="{% url 'shop:category_list' %}" class="btn btn-info">Shooping continue</a>
+        {% endfor %}
+        <h2 class="text-danger">Total: {{ order.get_total }}</h2>
+        
+
+    {% endif %}
+    </div>
+{% endblock content %}
+    

@@ -163,6 +163,7 @@ class OrderItem(models.Model):
     def subtotal(self):
         return self.price * self.quantity
 
+
     def clean(self):
         if self.quantity <= 0:
             raise ValidationError("Quantity must be greater than zero")
