@@ -1,10 +1,55 @@
 from django.contrib import messages
-
+from tools.utils import get_or_create_cart
 from django.shortcuts import render, redirect
 from .models import Category, Product, Order, OrderItem
 from django.shortcuts import get_object_or_404
 from django.views.generic import ListView, DetailView
 from django.core.exceptions import ValidationError
+
+
+# Check out
+def checkout(request):
+    order = get_or_create_cart(request)
+
+    if not order.items.exists():
+        return redirect("shop:cart_detail")
+    context = {
+        "order": order,
+    }
+    return render(request, "shop/checkout.html", context)
+    # order_id = request.session.get("order_id")
+
+    # if not order_id:
+    #     messages.error(request, "Empty cart!")
+    #     return redirect("shop:cart_detail")
+
+    # order = Order.objects.get(id=order_id)
+
+    # if not order.items.exists():
+    #     messages.error(request, "Empty cart")
+    #     return redirect("shop:cart_detail")
+
+    # try:
+    #     # test va tru stock
+    #     for item in order.items.all():
+    #         product = item.product
+    #         if item.quantity > product.stock:
+    #             raise ValidationError(f"{product.name} insufficient stock")
+    #         product.stock -= item.quantity
+    #         product.save()
+    #     # update order
+    #     order.status = Order.Status.PAID
+    #     order.total_price = order.get_total()
+    #     order.save()
+
+    #     # delete session cart
+    #     del request.session["order_id"]
+
+    #     messages.success(request, "Order placed successfully!")
+    #     return redirect("shop:home")
+    # except ValidationError as e:
+    #     messages.error(request, str(e))
+    #     return redirect("shop:cart_detail")
 
 
 # update_from_cart
@@ -40,41 +85,15 @@ def remove_from_cart(request, item_id):
 
 # Cart detail
 def cart_detail(request):
-    order_id = request.session.get("order_id")
-
-    if not order_id:
-        return render(request, "shop/cart_detail.html", {"order": None})
-    order = Order.objects.get(id=order_id)
-
+    order = get_or_create_cart(request)
     return render(request, "shop/cart_detail.html", {"order": order})
 
 
 # Cart
 def add_to_cart(request, slug):
     product = get_object_or_404(Product, slug=slug)
-    # Lấy order tron session
-    order_id = request.session.get("order_id")
-
-    if order_id:
-        order = Order.objects.get(id=order_id)
-    else:
-        order = Order.objects.create(status=Order.Status.DRAFT, total_price=0)
-        request.session["order_id"] = order.id
-    try:
-        # Kiểm tra product đã có trong giỏ hàng chưa
-        order_item, created = OrderItem.objects.get_or_create(
-            order=order,
-            product=product,
-            defaults={"price": product.price, "quantity": 1},
-        )
-        # Nếu đã có hàng thì tăng quantity
-        if not created:
-            order_item.quantity += 1
-            order_item.save()
-    except ValidationError as e:
-        messages.warning(request, f"Product is out of stock. {e}")
-        return redirect("shop:home")
-
+    order = get_or_create_cart(request)
+    order.add_product(product, quantity=1)
     return redirect(request.META.get("HTTP_REFERER", "/"))
 
 
@@ -100,10 +119,9 @@ class HomeView(ListView):
                 )
             else:
                 print(f"-> Bo qua {root_cat.name} vi khong co groups")
-        
+
         context["grouped_categories"] = grouped_data
         context["categories"] = root_categories
-        context["quantity_order_item"] = OrderItem.objects.all()
         return context
 
 

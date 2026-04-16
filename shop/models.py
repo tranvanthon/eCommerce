@@ -1,8 +1,10 @@
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils.text import slugify
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.db.models import Prefetch
+from django.contrib.auth.models import User
 
 
 class Category(models.Model):
@@ -15,6 +17,14 @@ class Category(models.Model):
     class Meta:
         verbose_name = "Category"
         verbose_name_plural = "Categories"
+        # Đảm bảo mỗi user chỉ 1 cart được active
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(complete=False),
+                name="unique_active_cart_per_user",
+            )
+        ]
 
     def __str__(self):
         if self.parent:
@@ -34,7 +44,6 @@ class Category(models.Model):
                 counter += 1
             self.slug = slug
         super().save(*args, **kwargs)
-
 
     def get_descendants(self, include_self=False):
         """Lấy tất cả danh mục con, cháu, chắt..."""
@@ -137,7 +146,10 @@ class Order(models.Model):
         choices=Status.choices,
         default=Status.DRAFT,
     )
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    user = models.ForeignKey(
+        User, on_delete=models.PROTECT, related_name="customer", blank=True, null=True
+    )
+    complete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def can_be_cancelled(self):
@@ -146,6 +158,32 @@ class Order(models.Model):
             self.Status.PAID,
         ]
 
+    # Thêm sản phẩm vào cart
+    def add_product(self, product, quantity=1):
+        item, created = self.items.get_or_create(
+            product=product, defaults={"price": product.price}
+        )
+
+        if not created:
+            item.quantity += quantity
+        else:
+            item.quantity = quantity
+        item.save()
+
+    # Cập nhật giỏ hàng
+    def update_item(self, product, quantity=1):
+        try:
+            item = self.items.get(product=product)
+            if quantity <= 0:
+                item.delete()
+            else:
+                item.quantity = quantity
+                item.save()
+
+        except OrderItem.DoesNotExist:
+            pass
+
+    @property
     def get_total(self):
         return sum(item.subtotal for item in self.items.all())
 
@@ -157,12 +195,11 @@ class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    quantity = models.PositiveIntegerField()
+    quantity = models.PositiveIntegerField(default=1, validators=[MinValueValidator(1)])
 
     @property
     def subtotal(self):
         return self.price * self.quantity
-
 
     def clean(self):
         if self.quantity <= 0:

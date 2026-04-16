@@ -1,13 +1,12 @@
 {% extends 'base.html' %}
 
 {% block title %}
-    {% if category %}
-        {{ category.name }} - Gtbooks Store
-    {% else %}
-        All product - Gtbooks Store
-    {% endif %}
+{% if category %}
+{{ category.name }} - Gtbooks Store
+{% else %}
+All product - Gtbooks Store
+{% endif %}
 {% endblock %}
-
 
 {% block content %}
 
@@ -16,18 +15,19 @@
 <p>Price: {{ product.price }}</p>
 
 <p>
-{% if product.is_in_stock %}
+    {% if product.is_in_stock %}
     <span style="color:green;">Còn hàng</span>
-{% else %}
+    {% else %}
     <span style="color:gray;">Hết hàng</span>
-{% endif %}
+    {% endif %}
 </p>
 
- <form class= "col-3" action="{% url 'shop:add_to_cart' product.slug %}" method="post">
-                                {% csrf_token %}
-                                <button type="submit" style="margin-top:8px; width:100%; padding:6px; background:#ee4d2d; color:white; border:none; cursor:pointer;">
-                                    Thêm vào giỏ
-                                </button>
-                            
-                            </form>
+<form class="col-3" action="{% url 'shop:add_to_cart' product.slug %}" method="post">
+    {% csrf_token %}
+    <button type="submit"
+        style="margin-top:8px; width:100%; padding:6px; background:#ee4d2d; color:white; border:none; cursor:pointer;">
+        Thêm vào giỏ
+    </button>
+
+</form>
 {% endblock %}
