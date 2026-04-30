@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load format_filter %}
+
+{% block navbar %}
+    {% include 'partials/navbar.html' %}
+{% endblock navbar %}
+
+{% block content %}
+<div class="category-container bg-light py-4">
+    <div class="container">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Trang chủ</a></li>
+                <li class="breadcrumb-item active">{{ category.name }}</li>
+            </ol>
+        </nav>
+
+        <div class="row g-4">
+
+            <aside class="col-lg-3">
+                <div class="category_list">
+                 <h3>Danh mục</h3>
+                    {% for root in categories %}
+                            <div>
+                                <a href="{% url 'shop:category_detail' root.slug %}">{{ root.name }}</a>
+                                
+                                {% for child in root.children.all %}
+                                    <ul>
+                                        <li>
+                                            <a href="{% url 'shop:category_detail' child.slug %}">
+                                                {{ child.name }}
+                                            </a>
+                                        </li>
+                                    </ul>
+                                {% endfor %}
+                            </div>
+                        {% endfor %} 
+                        <hr>
+                </div>
+                <div class="d-md-none mb-3">
+                    <button class="btn btn-outline-primary w-100" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileFilter">
+                        <i class="bi bi-funnel me-2"></i>Bộ lọc & Tìm kiếm
+                    </button>
+                </div>
+
+                <div class="filter-sidebar shadow-sm p-3 bg-white rounded">
+                    <h5 class="fw-bold mb-4"><i class="bi bi-funnel me-2"></i>Bộ lọc</h5>
+                    <form action="" method="get">
+                        <div class="filter-group mb-4">
+                            <div class="filter-title fw-bold mb-2">Thương hiệu</div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="brand" value="" id="brandAll" {% if not request.GET.brand %}checked{% endif %}>
+                                <label class="form-check-label small" for="brandAll">Tất cả</label>
+                            </div>
+                            
+                            {% for group in grouped_products %}
+                                {{group.category}}
+                            {% endfor %}
+                                
+                            {% for b in brand %}
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="brand" value="{{ b.slug }}" id="brand{{ forloop.counter }}" {% if request.GET.brand == b.slug %}checked{% endif %}>
+                                <label class="form-check-label small" for="brand{{ forloop.counter }}">{{ b.name }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="filter-group mb-4">
+                            <div class="filter-title fw-bold mb-2">Khoảng giá</div>
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <input type="number" name="min_price" value="{{ request.GET.min_price }}" class="form-control form-control-sm" placeholder="Từ">
+                                <span>-</span>
+                                <input type="number" name="max_price" value="{{ request.GET.max_price }}" class="form-control form-control-sm" placeholder="Đến">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 rounded-pill">Áp dụng</button>
+                    </form>
+                </div>
+            </aside>
+
+            <main class="col-lg-9">
+                <div class="sort-bar shadow-sm d-flex justify-content-between align-items-center p-3 bg-white rounded mb-4">
+                    <h5 class="fw-bold mb-0">{{ category.name }} <span class="text-muted fw-normal small">({{ products.count }} sản phẩm)</span></h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <select class="form-select form-select-sm border-0 bg-light" style="width: auto;">
+                            <option>Mới nhất</option>
+                            <option>Giá thấp đến cao</option>
+                            <option>Giá cao đến thấp</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    {% for group in grouped_products %}
+                    <h2>{{ group.category.name }}</h2>
+                    {% for product in group.products %}
+                        <div class="col-6 col-md-4 col-lg-3">
+                            {% include 'partials/product_list.html' %}
+                        </div>
+                    {% empty %}
+                        <div class="col-12 text-center py-5">
+                            <p class="text-muted">Không tìm thấy sản phẩm nào phù hợp.</p>
+                        </div>
+                    {% endfor %}
+                    {% endfor %}
+                </div>
+                {% if is_paginated %}
+                <nav class="mt-5">
+                    <ul class="pagination justify-content-center">
+                        </ul>
+                </nav>
+                {% endif %}
+            </main>
+        </div>
+    </div>
+</div>
+
+<div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="mobileFilter">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title fw-bold">Bộ lọc sản phẩm</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        </div>
+</div>
+{% endblock %}

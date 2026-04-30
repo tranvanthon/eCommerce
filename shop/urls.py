@@ -10,15 +10,19 @@ urlpatterns = [
     path("cart/detail/", views.cart_detail, name="cart_detail"),
     path("cart/add/<slug:slug>/", views.add_to_cart, name="add_to_cart"),
     path("", views.HomeView.as_view(), name="home"),
-    path("categories/", views.CatgoryListView.as_view(), name="category_list"),
     path(
         "categories/<slug:slug>/",
         views.CategoryDetailView.as_view(),
         name="category_detail",
     ),
     path(
-        "products/", views.ProductListView.as_view(), name="product_list"
-    ),  # all product
+        "category/create/", views.CategoryCreateView.as_view(), name="category_create"
+    ),
+    path(
+        "category/<slug:slug>/edit",
+        views.CategoryCreateView.as_view(),
+        name="category_edit",
+    ),
     path(
         "products/<slug:slug>/",
         views.ProductDetailView.as_view(),

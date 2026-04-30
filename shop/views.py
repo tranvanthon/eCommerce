@@ -3,8 +3,13 @@ from tools.utils import get_or_create_cart
 from django.shortcuts import render, redirect
 from .models import Category, Product, Order, OrderItem
 from django.shortcuts import get_object_or_404
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, CreateView
 from django.core.exceptions import ValidationError
+from django.template.loader import render_to_string
+from django.urls import reverse_lazy, reverse
+from django.http import HttpResponse
+from django.contrib.auth.mixins import LoginRequiredMixin
+from shop.forms import CategoryCreateForm
 
 
 # Check out
@@ -152,47 +157,32 @@ class CatgoryListView(ListView):
         return context
 
 
-# Category and product
 class CategoryDetailView(DetailView):
     model = Category
+    template_name = "shop/category_detail.html"  # Đảm bảo đúng path template
     context_object_name = "category"
-
-    def get_object(self):
-        return Category.objects.get(slug=self.kwargs["slug"])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-
-        category = self.object
-
-        products = Product.objects.filter(
-            category_id__in=category.get_descendants_ids(), is_active=True
-        )
-
+        category = self.get_object()
+        # Lấy query params
         brand = self.request.GET.get("brand")
-        min_price = self.request.GET.get("min_price")
-        max_price = self.request.GET.get("max_price")
+        min_p = self.request.GET.get("min_price")
+        max_p = self.request.GET.get("max_price")
 
-        if brand:
-            products = products.filter(category__slug=brand)
-
-        if min_price:
-            products = products.filter(price__gte=min_price)
-
-        if max_price:
-            products = products.filter(price__lte=max_price)
-
-        if brand or min_price or max_price:
-            context["is_filtered"] = True
-        else:
-            context["is_filtered"] = False
-            context["grouped_products"] = category.get_grouped_products()
-
-        context["products"] = products
+        # # Truyền vào hàm model
+        context["grouped_products"] = category.get_grouped_products(
+            brand=brand, min_price=min_p, max_price=max_p
+        )
         context["categories"] = Category.objects.filter(parent__isnull=True)
-        context["brands"] = category.children.all()
 
         return context
+
+
+class CategoryCreateView(LoginRequiredMixin, CreateView):
+    model = Category
+    success_url = reverse_lazy("shop:dashboard")
+    form_class = CategoryCreateForm
 
 
 class ProductListView(ListView):

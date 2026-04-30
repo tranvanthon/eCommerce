@@ -1,8 +1,9 @@
 from django.contrib import admin
-from shop.models import Product, Category
+from shop.models import Brand, Product, Category
 
 admin.site.register(Product)
 admin.site.register(Category)
+admin.site.register(Brand)
 
 # class ProductInline(admin.TabularInline):
 #     model = Product

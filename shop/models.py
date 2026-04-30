@@ -5,25 +5,65 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.db.models import Prefetch
 from django.contrib.auth.models import User
+from django.conf import settings
+
+
+class Brand(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if not self.slug:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+            while Brand.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
     parent = models.ForeignKey(
-        "self", on_delete=models.PROTECT, related_name="children", blank=True, null=True
+        "self", on_delete=models.PROTECT, blank=True, related_name="children", null=True
     )
     slug = models.SlugField(unique=True, blank=True)
+    # images for category
+    icon_code = models.CharField(max_length=150, blank=True)
+    image = models.ImageField(upload_to="category/", blank=True)
+
+    # status and show
+    is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
+    display_order = models.IntegerField(default=0)
+
+    # SEO
+    meta_title = models.CharField(max_length=200, blank=True, verbose_name="Meta Title")
+    meta_description = models.TextField(
+        max_length=500, blank=True, verbose_name="Meta Description"
+    )
+    meta_keywords = models.CharField(
+        max_length=300, blank=True, verbose_name="Meta Keywords"
+    )
+    # Thống kê
+    product_count = models.PositiveBigIntegerField(
+        default=0, verbose_name="Count the products"
+    )
+
+    # Timestamps
+    create_at = models.DateTimeField(auto_now_add=True)
+    update_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = "Category"
         verbose_name_plural = "Categories"
-        # Đảm bảo mỗi user chỉ 1 cart được active
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user"],
-                condition=models.Q(complete=False),
-                name="unique_active_cart_per_user",
-            )
+        ordering = ["display_order", "name"]
+        indexes = [
+            models.Index(fields=["name", "is_active"]),
+            models.Index(fields=["parent", "is_active"]),
         ]
 
     def __str__(self):
@@ -61,53 +101,138 @@ class Category(models.Model):
         """Lay list ID cua all descendants (de fielter Product)"""
         return [cat.id for cat in self.get_descendants(include_self=True)]
 
-    def get_grouped_products(self):
+    def get_grouped_products(self, brand=None, min_price=None, max_price=None):
         """Lấy sản phẩm theo nhóm danh mục CON, bao gồm cả chính nó"""
         if self.children.exists():
-
-            children = self.children.prefetch_related(
-                Prefetch("products", queryset=Product.objects.filter(is_active=True))
-            )
-
             result = []
-            # Lấy sản phẩm trực tiếp từ danh mục con
-            for child in children:
-                products = child.products.filter(is_active=True)
+            # Duyệt qua các danh mục con trực tiếp
+            for child in self.children.all():
+                # Lấy tất cả sản phẩm của nhánh 'child' này (bao gồm cả con của child)
+                descendant_ids = child.get_descendants_ids()
+                products = Product.objects.filter(
+                    category_id__in=descendant_ids, is_active=True
+                )
+                if brand:
+                    products = products.filter(brand__slug=brand)
+                if min_price:
+                    products = products.filter(price__gte=min_price)
+                if max_price:
+                    products = products.filter(price__lte=max_price)
 
-                if products:
-                    result.append({"category": child, "products": products})
-
+                if products.exists():
+                    result.append(
+                        {
+                            "category": child,
+                            "products": products.distinct(),  # Tránh trùng lặp nếu query phức tạp
+                        }
+                    )
             return result
         else:
             # Nếu không có children, lấy sản phẩm của chính nó
-            products = self.products.filter(is_active=True)
-            if products:
-                return [
-                    {
-                        "category": self,
-                        "products": products,
-                    }
-                ]
+            products = self.category_products.filter(is_active=True)
+            if brand:
+                products = products.filter(brand__slug=brand)
+            if min_price:
+                products = products.filter(price__gte=min_price)
+            if max_price:
+                products = products.filter(price__lte=max_price)
+            if products.exists():
+                return [{"category": self, "products": products}]
+            return []
 
 
 class Product(models.Model):
+    class ColorChoice(models.TextChoices):
+        BLACK = "BLACK", "Black"
+        GOLD = "GOLD", "Gold"
+        RED = "RED", "Red"
+
     name = models.CharField(max_length=255)
     category = models.ForeignKey(
-        Category, on_delete=models.PROTECT, related_name="products"
+        Category, on_delete=models.PROTECT, related_name="category_products"
+    )
+    brand = models.ForeignKey(
+        Brand,
+        on_delete=models.PROTECT,
+        related_name="brand_brands",
+        null=True,
+        blank=True,
     )
     price = models.DecimalField(decimal_places=2, max_digits=9)
-    is_active = models.BooleanField(default=True)
-    stock = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(auto_now_add=True)
     slug = models.SlugField(unique=True, blank=True)
+    # Mô tả sản phẩm
+    description = models.TextField(blank=True)
+    short_description = models.CharField(max_length=300, blank=True)
+    # Thông tin giá và tồn kho
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    cost_price = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name="Import prcie", default=2.00
+    )
+    sku = models.CharField(max_length=100, unique=True, verbose_name="Code SKU")
+    barcode = models.CharField(
+        max_length=100, blank=True, verbose_name="Barcode", db_index=True
+    )
+    # Quản lý tồn kho
+    stock = models.PositiveIntegerField(default=0, verbose_name="Stock")
+    low_stock_threshold = models.PositiveIntegerField(
+        default=5, verbose_name="Low inventory alert threshold"
+    )
+    track_stock = models.BooleanField(default=True, verbose_name="Inventory tracking")
+    # Trạng thái sản phẩm
+    is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False, verbose_name="Product is featered")
+    is_bestseller = models.BooleanField(
+        default=False, verbose_name="Product is bestseller"
+    )
+
+    # Thông số kỹ thuật
+    weight = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
+        null=True,
+        verbose_name="Weight (kg)",
+    )
+    dimensions = models.CharField(
+        max_length=100, blank=True, verbose_name="Demensions (width x hight x high)"
+    )
+    color = models.CharField(
+        max_length=20,
+        choices=ColorChoice.choices,
+        default=ColorChoice.BLACK,
+    )
+    material = models.CharField(max_length=50, blank=True, verbose_name="Material")
+
+    # SEO và phân tích
+
+    meta_title = models.CharField(max_length=200, blank=True, verbose_name="Meta Title")
+    meta_description = models.TextField(
+        max_length=500, blank=True, verbose_name="Meta Description"
+    )
+    meta_keywords = models.CharField(
+        max_length=300, blank=True, verbose_name="Meta Keywords"
+    )
+
+    # Thống kê
+    view_count = models.PositiveIntegerField(default=0, verbose_name="Wiewed")
+    sold_count = models.PositiveIntegerField(default=0, verbose_name="Đã bán")
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Date publish")
+    update_at = models.DateTimeField(auto_now_add=True, verbose_name="Date update")
 
     def __str__(self):
         return self.name
 
     class Meta:
-        ordering = ["-created_at"]
         verbose_name = "Product"
         verbose_name_plural = "Products"
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["name", "is_active"]),
+            models.Index(fields=["category", "is_active"]),
+        ]
+
 
     # Sock status
     def is_in_stock(self):
@@ -147,7 +272,11 @@ class Order(models.Model):
         default=Status.DRAFT,
     )
     user = models.ForeignKey(
-        User, on_delete=models.PROTECT, related_name="customer", blank=True, null=True
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="customer",
+        blank=True,
+        null=True,
     )
     complete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -189,6 +318,14 @@ class Order(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        # Đảm bảo mỗi user chỉ 1 cart được active
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(complete=False),
+                name="unique_active_cart_per_user",
+            )
+        ]
 
 
 class OrderItem(models.Model):
