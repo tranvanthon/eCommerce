@@ -1,5 +1,10 @@
 import os
 from pathlib import Path
+from django.contrib.messages import constants as messages
+
+MESSAGE_TAGS = {
+    messages.ERROR: "danger",  # quan trọng nhất
+}
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -102,7 +107,7 @@ SOCIALACCOUNT_ADAPTER = "accounts.adapters.CustomSocialAccountAdapter"
 if DEBUG:
     # MailHog sẽ bắt email qua giao thức SMTP[cite: 5]
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-    EMAIL_HOST = 'localhost'  # Hoặc 'localhost'
+    EMAIL_HOST = "localhost"  # Hoặc 'localhost'
     EMAIL_PORT = 1025  # Cổng mặc định của MailHog
     EMAIL_HOST_USER = ""  # MailHog không cần user
     EMAIL_HOST_PASSWORD = ""  # MailHog không cần password

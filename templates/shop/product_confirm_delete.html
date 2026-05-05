@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <form method="post">
+    {% csrf_token %}
+    <p>Bạn có chắc muốn xóa "{{ object }}" không?</p>
+    <button type="submit">Xóa</button>
+  </form>
+{% endblock %}

@@ -16,10 +16,11 @@
     {% load bootstrap5 %}
     {% bootstrap_css %}
     <link rel="stylesheet" href="{% static 'accounts/css/login_signup.css' %}" />
-    <link rel="stylesheet" href="{% static 'accounts/css/staff_admin.css' %}" />
+    <link rel="stylesheet" href="{% static 'accounts/css/dashboard.css' %}" />
     <link rel="stylesheet" href="{% static 'accounts/css/profile.css' %}" />
     <link rel="stylesheet" href="{% static 'core/css/navbar.css' %}" />
     <link rel="stylesheet" href="{% static 'core/css/base.css' %}" />
+    <link rel="stylesheet" href="{% static 'shop/css/product_detail.css' %}" />
   </head>
   <body>
     {% if messages %}
@@ -51,8 +52,11 @@
     {% bootstrap_javascript %}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="{% static 'accounts/js/login_signup.js' %}"></script>
+    <script src="{% static 'accounts/js/dashboard.js' %}"></script>
     <script src="{% static 'accounts/js/profile.js' %}"></script>
-    <script src="{% static 'core/js/main.js' %}"></script>
     <script src="{% static 'core/js/navbar.js' %}"></script>
+    <script src="{% static 'core/js/main.js' %}"></script>
+    <script src="{% static 'shop/js/product.js' %}"></script>
+    <script src="{% static 'shop/js/category.js' %}"></script>
   </body>
 </html>

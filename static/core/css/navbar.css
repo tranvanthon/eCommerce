@@ -31,14 +31,7 @@
     padding: 15px 0;
 }
 
-.nav-link {
-    font-weight: 500;
-    color: var(--bs-blue);
-}
 
-.nav-link:hover {
-    color: var(--bs-primary);
-}
 
 /* Dropdown Action (Cart, Account) */
 .nav-action-dropdown {
@@ -127,13 +120,19 @@
     border-radius: 8px;
 }
 
-/* Hero & Sections (Giữ nguyên từ code cũ của bạn) */
+/* Hero & Sections  */
+.hero-wrapper {
+    margin-bottom: 2rem;
+    /* Tạo khoảng cách an toàn với phần danh mục */
+}
+
 .hero-slider-container {
     height: 450px;
+    height: auto;
 }
 
 .carousel-item img {
-    height: 100%;
+    height: 400px;
     object-fit: cover;
     border-radius: 15px;
 }
@@ -282,6 +281,13 @@
     margin-bottom: 25px;
 }
 
+/* Đảm bảo Carousel và Promo Banners có độ cao bằng nhau */
+.hero-wrapper .row {
+    min-height: 400px;
+    height: auto;
+}
+
+
 /* Mobile Optimization */
 @media (max-width: 991.98px) {
 
@@ -359,5 +365,9 @@
         flex-direction: column;
         align-items: flex-start !important;
         gap: 10px;
+    }
+
+    .hero-wrapper .row {
+        height: auto;
     }
 }

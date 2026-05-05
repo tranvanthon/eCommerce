@@ -24,12 +24,14 @@ class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
+        extra_fields.setdefault("role", "customer")
         return self._create_user(email, password, **extra_fields)
 
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault("role", "admin")
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser phải có is_staff=True.")
@@ -77,6 +79,14 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.get_full_name() or self.email
+
+    @property
+    def is_admin(self):
+        return self.role == "admin"
+
+    @property
+    def is_staff_role(self):
+        return self.role == "staff"
 
 
 class Profile(models.Model):

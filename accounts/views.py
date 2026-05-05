@@ -1,5 +1,5 @@
 from django.views.generic import UpdateView, DetailView, CreateView
-
+from .decorators import role_required
 from accounts.forms import (
     CustomPasswordResetForm,
     LoginForm,
@@ -128,7 +128,13 @@ class LoginCustomView(LoginView):
     authentication_form = LoginForm
 
     def get_success_url(self):
-        return reverse_lazy("shop:home")
+        user = self.request.user
+        if user.is_superuser or user.role == "admin":
+            return reverse_lazy("admin_dashboard")
+        if user.role == "staff":
+            return reverse_lazy("admin_dashboard")
+        else:
+            return reverse_lazy("customer_dashboard")
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:
@@ -164,18 +170,21 @@ class SignupView(CreateView):
 
 
 @login_required
+@role_required(allowed_roles=["admin"])
 def admin_dashboard(request):
-    return HttpResponse("Chào quản trị viên!")
+    return render(request, "core/dashboard.html")
 
 
 @login_required
+@role_required(allowed_roles=["admin", "staff"])
 def staff_dashboard(request):
-    return HttpResponse("Chào nhân viên!")
+    return render(request, "core/dashboard.html")
 
 
 @login_required
+@role_required(allowed_roles=["customer", "admin", "staff"])
 def customer_dashboard(request):
-    return HttpResponse("Chào khách hàng!")
+    return render(request, "core/dashboard.html")
 
 
 class CustomPasswordResetView(PasswordResetView):

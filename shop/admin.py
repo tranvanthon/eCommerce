@@ -1,28 +1,30 @@
 from django.contrib import admin
-from shop.models import Brand, Product, Category
+from shop.models import Brand, Product, Category, ProductImage, Banner
 
-admin.site.register(Product)
-admin.site.register(Category)
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ["name", "product_count", "is_active"]
+
+    readonly_fields = ["product_count"]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Khi edit
+            return self.readonly_fields + ["product_count"]
+        return self.readonly_fields
+
+
+class ProductImageInline(admin.TabularInline):
+    """Tabular Inline View for"""
+
+    model = ProductImage
+    extra = 1
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    inlines = [ProductImageInline]
+
+
 admin.site.register(Brand)
-
-# class ProductInline(admin.TabularInline):
-#     model = Product
-#     extra = 3
-#     list_display = [
-#         "name",
-#         "category",
-#         "price",
-#         "stock",
-#     ]
-
-
-# class CategoryAdmin(admin.ModelAdmin):
-#     list_display = [
-#         "name",
-#         "parent",
-#     ]
-
-#     inlines = [ProductInline]
-
-
-# admin.site.register(Category, CategoryAdmin)
+admin.site.register(Banner)

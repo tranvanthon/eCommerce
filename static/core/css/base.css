@@ -1,5 +1,5 @@
 :root {
-    --bs-primary: #278aae;
+    --bs-primary: #4562e3;
     --bs-primary-rgb: 39, 138, 174;
     --bs-secondary: #e2e2e2;
     --bs-secondary-rgb: 226, 226, 226;
@@ -24,17 +24,46 @@
     --bs-yellow: #f7e1ae;
     --bs-box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     --bs-input-box-shadow: inset 0 .075rem .15rem rgba(0, 0, 0, .15);
+    /* Biến cấu hình giao diện */
+    --sidebar-width: 260px;
+    --bg-body: #f4f7f9;
+    /* Màu nền nhẹ để tôn vinh màu primary mới */
+    --accent-color: var(--bs-primary);
+    /* --accent-color: #4361ee; */
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #fff;
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-light);
 }
 
 /* Chỉ áp dụng cho các thành phần tương tác */
-a, button, .btn, .card, .nav-link {
-  transition: background-color 0.25s ease, color 0.2s ease;
+a,
+button,
+.btn,
+.card,
+.nav-link {
+    transition: background-color 0.25s ease, color 0.2s ease;
 }
+
+
+
+.nav-link {
+    color: #6a7d8d;
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--accent-color);
+    background: rgba(67, 97, 238, 0.05);
+}
+
+
+
 .btn-primary {
     background-color: var(--bs-primary);
     border-color: var(--bs-primary);
@@ -49,10 +78,15 @@ a, button, .btn, .card, .nav-link {
     border-color: var(--bs-blue);
 }
 
-.text-primary {
-    color: var(--bs-primary) !important;
-}
+
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
