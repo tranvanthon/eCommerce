@@ -106,14 +106,16 @@ class HomeView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        root_categories = Category.active.filter(parent__isnull=True)
+        root_categories = Category.active.filter(parent__isnull=True).order_by(
+            "-created_at"
+        )[:12]
         grouped_data = [
             {
                 "main_category": cat,
-                "groups": cat.get_grouped_products(),
+                "groups": cat.get_homepage_preview(),
             }
             for cat in root_categories
-            if cat.get_grouped_products()
+            if cat.get_homepage_preview()
         ]
 
         # ✅ Dùng property is_bestseller (tính tự động)
@@ -146,6 +148,7 @@ class HomeView(ListView):
                 "latest_products": latest_products,
                 "banners": banners,
                 "featured_categories": featured_categories,
+                "breadcrumb": {"Trang chủ": "/"},
             }
         )
         return context
@@ -161,28 +164,83 @@ class ProductListView(ListView):
         return Product.active.all()
 
 
+from django.core.paginator import Paginator
+from collections import OrderedDict
+
+
 class CategoryDetailView(DetailView):
     model = Category
     template_name = "shop/category_detail.html"
     context_object_name = "category"
 
-    def get_object(self):
+    def object(self):
         return get_object_or_404(Category.active, slug=self.kwargs["slug"])
+
+    def get(self, request, *args, **kwargs):
+        # Thêm custom breadcrumb
+        category = self.get_object()
+
+        # Tạo breadcrumb cho category hierarchy
+        breadcrumb_items = OrderedDict()
+
+        # Xây dựng đường dẫn đầy đủ các category cha
+        ancestors = []
+        current = category
+        while current:
+            ancestors.insert(0, current)
+            current = current.parent
+
+        # Thêm từng cấp vào breadcrumb
+        for cat in ancestors:
+            breadcrumb_items[cat.name] = reverse(
+                "shop:category_detail", kwargs={"slug": cat.slug}
+            )
+
+        # Gán vào request để context processor sử dụng
+        request.custom_breadcrumb = breadcrumb_items
+
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         category = self.object
+        from tools.breadcrumb_utils import get_breadcrumb
+
+        # Tạo breadcrumb riêng cho category
+        context["breadcrumb"] = get_breadcrumb(category=category)
 
         brand = self.request.GET.get("brand")
         min_p = self.request.GET.get("min_price")
         max_p = self.request.GET.get("max_price")
-
-        context["grouped_products"] = category.get_grouped_products(
-            brand=brand, min_price=min_p, max_price=max_p
+        sort = self.request.GET.get("sort")
+        grouped_products = category.get_grouped_products(
+            brand=brand,
+            min_price=min_p,
+            max_price=max_p,
+            sort=sort,
         )
+        products = category.get_products_queryset(
+            brand=brand,
+            min_price=min_p,
+            max_price=max_p,
+            sort=sort,
+        )
+
+        context["grouped_products"] = grouped_products
+
+        # paginator
+        paginator = Paginator(products, 12)
+        page_number = self.request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        context["page_obj"] = page_obj
+        context["products"] = page_obj
         context["brands"] = Brand.objects.all()
 
-        context["categories"] = Category.active.filter(parent__isnull=True)
+        context["categories"] = Category.active.filter(
+            parent__isnull=True
+        ).prefetch_related("children")
+        context["custom_breadcrumb"] = getattr(self.request, "custom_breadcrumb", {})
         return context
 
 
@@ -264,3 +322,14 @@ class ProductDetailView(DetailView):
 
     def get_object(self):
         return get_object_or_404(Product.active, slug=self.kwargs["slug"])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        product = self.object
+
+        # Breadcrumb cho sản phẩm
+        from tools.breadcrumb_utils import get_breadcrumb
+
+        context["breadcrumb"] = get_breadcrumb(product=product)
+
+        return context

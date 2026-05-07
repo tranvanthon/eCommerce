@@ -14,14 +14,14 @@
       <div class="container">
         <h3 class="fw-bold mb-4 text-center">Danh mục nổi bật</h3>
         <div class="row g-3">
-          {% for category in grouped_categories %}
+          {% for category in featured_categories %}
             <div class="col-6 col-md-3">
-              <a href="{% url 'shop:category_detail' category.main_category.slug %}" class="cat-item shadow-sm">
-                {% if category.main_category.icon_code %}
-                  <i class="{{ category.main_category.icon_code }} fs-2"></i>
+              <a href="{% url 'shop:category_detail' category.slug %}" class="cat-item shadow-sm">
+                {% if category.icon_code %}
+                  <i class="{{ category.icon_code }} fs-2"></i>
                 {% endif %}
 
-                <br /><b>{{ category.main_category.name }}</b>
+                <br /><b>{{ category.name }}</b>
               </a>
             </div>
           {% endfor %}

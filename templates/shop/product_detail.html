@@ -13,13 +13,15 @@
     <div class="container">
       <nav aria-label="breadcrumb" class="mb-4">
         <ol class="breadcrumb">
-          <li class="breadcrumb-item">
-            <a href="#" class="text-decoration-none">Trang chủ</a>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="#" class="text-decoration-none">Điện thoại</a>
-          </li>
-          <li class="breadcrumb-item active">iPhone 15 Pro Max</li>
+          {% for name, url in breadcrumb.items %}
+            <li class="breadcrumb-item {% if forloop.last %}active{% endif %}">
+              {% if not forloop.last %}
+                <a href="{{ url }}" class="text-decoration-none">{{ name }}</a>
+              {% else %}
+                {{ name }}
+              {% endif %}
+            </li>
+          {% endfor %}
         </ol>
       </nav>
 

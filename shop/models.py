@@ -86,7 +86,7 @@ class Category(models.Model):
     )
 
     # Timestamps
-    create_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     update_at = models.DateTimeField(auto_now=True)
 
     # Gọi manager
@@ -124,6 +124,10 @@ class Category(models.Model):
             "Setting product_count manually is deprecated. This value is auto-calculated."
         )
         pass
+
+    @property
+    def active_children(self):
+        return self.children.filter(is_active=True)
 
     @property
     def total_sold(self):
@@ -175,8 +179,10 @@ class Category(models.Model):
         """Lấy list ID của tất cả descendants (để filter Product)"""
         return [cat.id for cat in self.get_descendants(include_self=True)]
 
-    def get_grouped_products(self, brand=None, min_price=None, max_price=None):
-        """Lấy sản phẩm theo nhóm danh mục CON"""
+    def get_grouped_products(
+        self, brand=None, min_price=None, max_price=None, sort=None
+    ):
+        """Lấy sản phẩm theo nhóm danh mục con kết hợp với filter sản phẩm"""
         if self.children.exists():
             result = []
             for child in self.children.filter(is_active=True):
@@ -188,7 +194,12 @@ class Category(models.Model):
                     products = products.filter(price__gte=min_price)
                 if max_price:
                     products = products.filter(price__lte=max_price)
-
+                if sort == "price_asc":
+                    products = products.order_by("price")
+                elif sort == "price_desc":
+                    products = products.order_by("-price")
+                elif sort == "newest":
+                    products = products.order_by("-created_at")
                 if products.exists():
                     result.append(
                         {
@@ -205,9 +216,62 @@ class Category(models.Model):
                 products = products.filter(price__gte=min_price)
             if max_price:
                 products = products.filter(price__lte=max_price)
+            if sort == "price_asc":
+                products = products.order_by("price")
+            elif sort == "price_desc":
+                products = products.order_by("-price")
+            elif sort == "newest":
+                products = products.order_by("-created_at")
             if products.exists():
                 return [{"category": self, "products": products}]
             return []
+
+    def get_products_queryset(
+        self,
+        brand=None,
+        min_price=None,
+        max_price=None,
+        sort=None,
+    ):
+        descendant_ids = self.get_descendants_ids()
+
+        products = Product.active.filter(category_id__in=descendant_ids)
+
+        if brand:
+            products = products.filter(brand__slug=brand)
+
+        if min_price:
+            products = products.filter(price__gte=min_price)
+
+        if max_price:
+            products = products.filter(price__lte=max_price)
+
+        if sort == "price_asc":
+            products = products.order_by("price")
+
+        elif sort == "price_desc":
+            products = products.order_by("-price")
+
+        elif sort == "newest":
+            products = products.order_by("-created_at")
+
+        return products.distinct()
+
+    def get_homepage_preview(self):
+        """Chỉ lấy 12 sản phẩm đầu tiên từ kết quả đã gom nhóm để hiển thị trang chủ"""
+        full_data = self.get_grouped_products()
+        preview_result = []
+
+        for item in full_data:
+            limited_products = item["products"][:12]
+            if limited_products:
+                preview_result.append(
+                    {
+                        "category": item["category"],
+                        "products": limited_products,
+                    }
+                )
+        return preview_result
 
 
 class Product(models.Model):
